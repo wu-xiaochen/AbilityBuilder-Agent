@@ -168,6 +168,7 @@ def publish_clawhub() -> bool:
 def analyze_and_enhance() -> tuple[bool, List[str]]:
     """
     分析当前状态并生成增强建议
+    触发条件：发现优化点就触发升级
     返回: (是否需要升级, 增强内容列表)
     """
     changes = []
@@ -204,19 +205,24 @@ def analyze_and_enhance() -> tuple[bool, List[str]]:
         if not filepath.exists():
             changes.append(f"⚠️ 缺失文件: {f}")
 
-    # 3. 检查 memory 目录内容
+    # 3. 检查 memory 目录内容 - 核心增强点
     memory_dir = SKILL_DIR / "memory"
     if memory_dir.exists():
         files = list(memory_dir.glob("*"))
         if len(files) < 5:
             changes.append(f"📁 memory 目录内容较少 ({len(files)} 个文件)，可能需要扩充")
+        
+        # 4. 检查各领域本体覆盖情况
+        domain_coverage = check_domain_coverage()
+        if domain_coverage:
+            changes.extend(domain_coverage)
 
-    # 4. 检查 evals 目录
+    # 5. 检查 evals 目录
     evals_dir = SKILL_DIR / "evals"
     if not evals_dir.exists() or not list(evals_dir.glob("*.json")):
         changes.append("🧪 缺少评估测试文件")
 
-    # 5. 检查文档完整性
+    # 6. 检查文档完整性
     if SKILL_MD.exists():
         content = SKILL_MD.read_text()
         doc_length = len(content)
@@ -226,13 +232,59 @@ def analyze_and_enhance() -> tuple[bool, List[str]]:
         if "v3." not in content and "v4." not in content:
             changes.append("🔄 文档版本较旧，建议更新至最新版本格式")
 
-    # 6. 自动增强：确保 memory 目录有基础数据
+    # 7. 检查推理规则完整性
+    rule_coverage = check_rule_coverage()
+    if rule_coverage:
+        changes.extend(rule_coverage)
+
+    # 8. 自动增强：确保 memory 目录有基础数据
     ensure_memory_files()
 
-    # 7. 自动增强：更新 self_eval.py
+    # 9. 自动增强：更新 self_eval.py
     enhance_self_eval()
 
     return len(changes) > 0, changes
+
+
+def check_domain_coverage() -> List[str]:
+    """检查各领域本体覆盖，发现缺失领域即添加"""
+    changes = []
+    
+    # 已支持领域
+    known_domains = [
+        "供应链", "医疗", "金融", "制造", "法律", "能源",
+        "燃气工程", "AI", "商业战略", "技术", "教育"
+    ]
+    
+    # 检查 memory/laws.yaml 中的领域覆盖
+    laws_file = SKILL_DIR / "memory" / "laws.yaml"
+    if laws_file.exists():
+        content = laws_file.read_text()
+        for domain in known_domains:
+            if domain not in content:
+                changes.append(f"🌐 发现新领域: {domain}，建议添加领域规则")
+    
+    return changes
+
+
+def check_rule_coverage() -> List[str]:
+    """检查推理规则覆盖，发现缺失规则即添加"""
+    changes = []
+    
+    # 核心推理规则应该覆盖的场景
+    required_scenarios = [
+        "选型分析", "计算分析", "风险评估", "决策支持",
+        "知识抽取", "规则匹配", "置信度评估", "多领域推理"
+    ]
+    
+    rules_file = SKILL_DIR / "memory" / "rules.yaml"
+    if rules_file.exists():
+        content = rules_file.read_text()
+        for scenario in required_scenarios:
+            if scenario not in content:
+                changes.append(f"📋 发现缺失推理规则: {scenario}，建议添加")
+    
+    return changes
 
 
 def ensure_memory_files():

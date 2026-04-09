@@ -5,13 +5,13 @@ metadata:
   {
     "openclaw": {
       "emoji": "🧠",
-      "version": "3.5",
+      "version": "3.3.1",
       "last_updated": "2026-04-09"
     }
   }
 ---
 
-# ontology-clawra v3.5
+# ontology-clawra v3.3.1
 
 **Palantir本体论实践版本** - Clawra的核心智能引擎 v3.5（通用领域综合版）
 
